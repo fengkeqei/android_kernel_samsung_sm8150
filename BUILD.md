@@ -95,8 +95,10 @@ adb shell getprop ro.build.fingerprint   # 系统侧不受影响，仍是原厂
 |---|---|---|---|
 | 1 | 全关（UH_RKP/KDP/NS_PROT/DMAP_PROT 均 off） | `714940d60d9e7dd58634496701b668e4` | ✅ 开机，双卡正常 |
 | 2 | UH_RKP + RKP_KDP | `a0ae5639e47e49e800615423b08ffab7` | ✅ 开机 |
-| 3 | + RKP_NS_PROT + RKP_DMAP_PROT（当前 defconfig） | `054ba2a795db78dc1a6312715bcc2468` | 🔄 已推送 /sdcard 待验证 |
-| 4 | + RKP_CFP_JOPP/ROPP（回到原厂全开） | — | ⏳ 待 #3 通过后 |
+| 3 | + RKP_NS_PROT + RKP_DMAP_PROT | `054ba2a795db78dc1a6312715bcc2468` | ✅ 开机 + uh_log 证实会话建立 |
+| 4 | + RKP_CFP_JOPP/ROPP（= 原厂全开，当前 defconfig） | `40490ad2f528d14029fa1274f6f04007` | ✅ 开机 + ROPP key 注册 SMC 在 uh_log 独有出现 |
+
+**RKP 实效验证方法**（无需 root）：`adb shell cat /proc/uh_log`——TZ 侧 uH 日志（`drivers/uh/uh_debug_log.c`，mode 0644，物理 0xB0200000/256KB，每次开机 TZ 重写）。出厂 TZ 字符串被哈希混淆为 `RKP_xxxxxxxx`，但参数明文可读。关键锚点：uH 版本横幅（`UH64 … U18PB1-0277`）、`ro_bitmap`/`dbl_bitmap`/`robuf` 全内存登记、KDP cred 注册（`BBFF440C0400` 特征码）、逐进程 task 登记、CFP 启动后多出的 ROPP key 注册（`uh_call(UH_APP_RKP, 0xe)`，`init/main.c:685`）。注意 release 版 uH 只记录初始化阶段（约头 18 秒），之后日志不再增长属正常。
 
 对照：4.14.357 基线任意 RKP 组合均在原厂 TZ 下 `BRK #4` 崩溃（详见 `WORKLOG-round71-rkp-root-cause.md`）。
 
