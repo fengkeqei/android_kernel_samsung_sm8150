@@ -951,7 +951,7 @@ int security_mmap_file(struct file *file, unsigned long prot,
 	ret = five_file_mmap(file, prot);
 	if (ret)
 		return ret;
-	return ima_file_mmap(file, prot);
+	return ima_file_mmap(file, prot, prot, flags);
 }
 
 int security_mmap_addr(unsigned long addr)
