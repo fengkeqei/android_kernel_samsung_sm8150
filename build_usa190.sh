@@ -28,7 +28,12 @@ export CFP_CC="$CLANG_BIN/clang"
 export CLANG_TRIPLE=aarch64-linux-gnu-
 export PYTHON=python2
 export LD_LIBRARY_PATH="$T/llvm-arm-toolchain-ship-10.0/llvm-arm-toolchain-ship/10.0/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-export PATH="$CLANG_BIN:$NDK_BIN:$PATH"
+# scripts/link-vmlinux.sh calls plain `python` for CFP instrumentation and the
+# FIPS check; that code is python2-only. Map python -> python2.7 via a shim dir.
+PY2SHIM=$T/py2bin
+mkdir -p "$PY2SHIM"
+ln -sf "$(command -v python2.7 || command -v python2)" "$PY2SHIM/python"
+export PATH="$PY2SHIM:$CLANG_BIN:$NDK_BIN:$PATH"
 # Match the stock OS12 banner (dpi@21DN2A11, #2).
 export KBUILD_BUILD_USER=dpi
 export KBUILD_BUILD_HOST=21DN2A11
