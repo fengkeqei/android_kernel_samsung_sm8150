@@ -2055,6 +2055,7 @@ static int dwc3_gadget_wakeup_int(struct dwc3 *dwc)
 	case DWC3_LINK_STATE_RESET:
 	case DWC3_LINK_STATE_RX_DET:	/* in HS, means Early Suspend */
 	case DWC3_LINK_STATE_U3:	/* in HS, means SUSPEND */
+	case DWC3_LINK_STATE_U2:	/* in HS, means Sleep (L1) */
 	case DWC3_LINK_STATE_RESUME:
 		break;
 	case DWC3_LINK_STATE_U1:
@@ -2460,6 +2461,10 @@ static void dwc3_gadget_enable_irq(struct dwc3 *dwc)
 	if (dwc->revision < DWC3_REVISION_230A)
 		reg |= DWC3_DEVTEN_ULSTCNGEN;
 
+	/* On 2.30a and above this bit enables U3/L2-L1 Suspend Events */
+	if (dwc->revision >= DWC3_REVISION_230A)
+		reg |= DWC3_DEVTEN_EOPFEN;
+
 	dwc3_writel(dwc->regs, DWC3_DEVTEN, reg);
 }
 
@@ -2673,6 +2678,7 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	dwc->ep0state = EP0_SETUP_PHASE;
 	dwc->ep0_bounced = false;
 	dwc->link_state = DWC3_LINK_STATE_SS_DIS;
+	dwc->delayed_status = false;
 	dwc3_ep0_out_start(dwc);
 
 	dwc3_gadget_enable_irq(dwc);
@@ -3106,6 +3112,15 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 			break;
 		}
 	}
+
+	/*
+	 * Ideally, dwc3_reset_gadget() would trigger the function
+	 * drivers to stop any active transfers through ep disable.
+	 * However, for functions which defer ep disable, such as mass
+	 * storage, we will need to rely on the call to stop active
+	 * transfers here, and avoid allowing of request queuing.
+	 */
+	dwc->connected = false;
 
 	/*
 	 * Our endpoint might get disabled by another thread during

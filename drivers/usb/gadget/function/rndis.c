@@ -950,6 +950,7 @@ struct rndis_params *rndis_register(void (*resp_avail)(void *v), void *v,
 	params->flow_ctrl_enable = flow_ctrl_enable;
 	params->v = v;
 	INIT_LIST_HEAD(&params->resp_queue);
+	spin_lock_init(&params->resp_lock);
 	pr_debug("%s: configNr = %d\n", __func__, i);
 
 	return params;
