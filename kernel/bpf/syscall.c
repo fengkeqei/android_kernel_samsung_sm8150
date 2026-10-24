@@ -1086,6 +1086,15 @@ static int bpf_prog_load(union bpf_attr *attr)
 	if (attr->prog_flags & ~BPF_F_STRICT_ALIGNMENT)
 		return -EINVAL;
 
+	/* A16 netbpfload passes prog_types newer than this 4.14 tree, including
+	 * CGROUP_SOCK_ADDR(18) for netd connect/getsockname programs. We have no
+	 * runtime hooks for those, so they can never execute: remap everything
+	 * 18-30 to CGROUP_SKB so they LOAD, and let BPF_PROG_ATTACH accept the
+	 * connect attach types with ptype CGROUP_SKB so they ATTACH. Dormant but
+	 * satisfied = netd lives. */
+	if (type >= 18 && type <= 30)
+		type = BPF_PROG_TYPE_CGROUP_SKB;
+
 	/* copy eBPF program license from user space */
 	if (strncpy_from_user(license, u64_to_user_ptr(attr->license),
 			      sizeof(license) - 1) < 0)
@@ -1277,6 +1286,15 @@ static int bpf_prog_attach(const union bpf_attr *attr)
 	case BPF_SK_SKB_STREAM_VERDICT:
 		return sockmap_get_from_fd(attr, true);
 	default:
+		/* All A16 netd progs were remapped to CGROUP_SKB at load, and we
+		 * have no runtime hooks for the modern attach types (connect/
+		 * sendmsg/recvmsg/getsockname/...). Accept any attach type below
+		 * MAX_BPF_ATTACH_TYPE as CGROUP_SKB: they attach and stay dormant
+		 * (never executed). Must be < MAX: it indexes cgrp->bpf.progs[]. */
+		if ((unsigned int)attr->attach_type < MAX_BPF_ATTACH_TYPE) {
+			ptype = BPF_PROG_TYPE_CGROUP_SKB;
+			break;
+		}
 		return -EINVAL;
 	}
 
@@ -1300,6 +1318,7 @@ static int bpf_prog_attach(const union bpf_attr *attr)
 }
 
 #define BPF_PROG_DETACH_LAST_FIELD attach_type
+#define BPF_PROG_QUERY_LAST_FIELD prog_cnt
 
 static int bpf_prog_detach(const union bpf_attr *attr)
 {
@@ -1329,6 +1348,12 @@ static int bpf_prog_detach(const union bpf_attr *attr)
 	case BPF_SK_SKB_STREAM_VERDICT:
 		return sockmap_get_from_fd(attr, false);
 	default:
+		/* mirror bpf_prog_attach: accept modern attach types as
+		 * CGROUP_SKB (progs were remapped at load; dormant). */
+		if ((unsigned int)attr->attach_type < MAX_BPF_ATTACH_TYPE) {
+			ptype = BPF_PROG_TYPE_CGROUP_SKB;
+			break;
+		}
 		return -EINVAL;
 	}
 
@@ -1637,6 +1662,9 @@ SYSCALL_DEFINE3(bpf, int, cmd, union bpf_attr __user *, uattr, unsigned int, siz
 		break;
 	case BPF_PROG_DETACH:
 		err = bpf_prog_detach(&attr);
+		break;
+	case BPF_PROG_QUERY:
+		err = cgroup_bpf_query(&attr, &attr);
 		break;
 #endif
 	case BPF_PROG_TEST_RUN:
