@@ -574,8 +574,16 @@ free_irqs:
 /* control access to PCIe MSI registers */
 void msm_msi_config_access(struct irq_domain *domain, bool allow)
 {
-	struct msm_msi *msi = domain->parent->host_data;
+	struct msm_msi *msi;
 	unsigned long flags;
+
+	if (!domain || !domain->parent) {
+		pr_warn("msm_msi: config_access on domain-less device (allow=%d)\n",
+			allow);
+		return;
+	}
+
+	msi = domain->parent->host_data;
 
 	spin_lock_irqsave(&msi->cfg_lock, flags);
 	msi->cfg_access = allow;
@@ -587,6 +595,11 @@ void msm_msi_config(struct irq_domain *domain)
 {
 	struct msm_msi *msi;
 	int i;
+
+	if (!domain || !domain->parent) {
+		pr_warn("msm_msi: config on domain-less device\n");
+		return;
+	}
 
 	msi = domain->parent->host_data;
 
