@@ -1136,6 +1136,8 @@ static int dwc3_core_get_phy(struct dwc3 *dwc)
 		}
 	}
 
+	dma_set_max_seg_size(dev, UINT_MAX);
+
 	return 0;
 }
 
