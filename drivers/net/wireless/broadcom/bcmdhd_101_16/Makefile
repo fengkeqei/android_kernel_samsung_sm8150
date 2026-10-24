@@ -24,7 +24,8 @@
 #####################
 
 DHDCFLAGS += -DBCMUTILS_ERR_CODES -DUSE_NEW_RSPEC_DEFS
-DHDCFLAGS += -Wall -Werror -Wstrict-prototypes -Dlinux -DLINUX -DBCMDRIVER      \
+# clang 21 migration: module-level -Werror/-Wstrict-prototypes relaxed
+DHDCFLAGS += -Wall -Wno-strict-prototypes -Dlinux -DLINUX -DBCMDRIVER      \
         -DBCMDONGLEHOST -DUNRELEASEDCHIP -DBCMDMA32 -DBCMFILEIMAGE      \
         -DDHDTHREAD -DDHD_BCMEVENTS -DSHOW_EVENTS -DWLP2P      \
         -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT -DKEEP_ALIVE -DCSCAN     \
