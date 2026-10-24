@@ -4,12 +4,12 @@
 #
 # Usage: ./build_usa190.sh [--clean]
 #   TOOLCHAIN_DIR  base dir holding llvm-arm-toolchain-ship-10.0/,
-#                  ndk-r16b/, tools/make-4.3/   (default: /home/dev/Projects/toolchain)
+#                  ndk-r16b/, tools/make-4.3/   (required, no default)
 #   OUT_DIR        out-of-tree build dir        (default: $TOOLCHAIN_DIR/out-usa190)
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-/home/dev/Projects/toolchain}
+TOOLCHAIN_DIR=${TOOLCHAIN_DIR:?set TOOLCHAIN_DIR to the toolchain base directory}
 T=$TOOLCHAIN_DIR
 MAKE=$T/tools/make-4.3/bin/make
 CLANG_BIN=$T/llvm-arm-toolchain-ship-10.0/llvm-arm-toolchain-ship/10.0/bin
