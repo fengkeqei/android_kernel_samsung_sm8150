@@ -98,6 +98,7 @@ struct netns_ipv4 {
 	int sysctl_ip_dynaddr;
 	int sysctl_ip_early_demux;
 	int sysctl_tcp_early_demux;
+	int sysctl_tcp_early_retrans;
 	int sysctl_udp_early_demux;
 
 	int sysctl_fwmark_reflect;
